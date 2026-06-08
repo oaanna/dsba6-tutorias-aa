@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outer Join SQL</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Calibri', 'Segoe UI', sans-serif;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 28px 24px 48px;
+    color: #1a1a1a;
+  }
+  h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 20px;
+  }
+  .btns {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .op-btn {
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #333;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .op-btn:hover { background: #f5f5f5; }
+  .op-btn.active { border-color: #555; font-weight: 600; background: #fafafa; }
+
+  .tables-wrap {
+    display: flex;
+    gap: 70px;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    max-width: 860px;
+    position: relative;
+  }
+  .tbl-block { flex: 1; min-width: 0; }
+
+  /* Header bar com cor da tabela */
+  .tbl-title {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 10px;
+    border-radius: 5px 5px 0 0;
+    color: #fff;
+    text-align: center;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+  thead th {
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 1.5px solid #ddd;
+    text-align: left;
+    color: #555;
+  }
+
+  /* Linhas coloridas — Customer roxo claro, CustomerAddress verde claro */
+  .row-c {
+    background: #EEEDFE;
+    border-bottom: 1px solid #AFA9EC;
+    transition: opacity .3s;
+  }
+  .row-c td { padding: 6px 8px; color: #3C3489; }
+
+  .row-a {
+    background: #E1F5EE;
+    border-bottom: 1px solid #5DCAA5;
+    transition: opacity .3s;
+  }
+  .row-a td { padding: 6px 8px; color: #085041; }
+
+  /* Linhas NULL */
+  .row-null {
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    transition: opacity .3s;
+  }
+  .row-null td {
+    padding: 6px 8px;
+    color: #bbb;
+    font-style: italic;
+  }
+
+  .dim { opacity: 0.15; }
+
+  #connectors {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  .rule {
+    font-size: 13px;
+    color: #555;
+    text-align: center;
+    min-height: 18px;
+    margin-top: 16px;
+    max-width: 760px;
+  }
+  .sql-wrap { text-align: center; margin-top: 8px; }
+  .sql-box {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    background: #f7f7f7;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 16px;
+    display: inline-block;
+    text-align: left;
+    line-height: 1.8;
+    color: #1a1a1a;
+  }
+  .sql-box b { color: #E8372A; }
+
+  .legend {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    font-size: 11px;
+    color: #999;
+    margin-top: 10px;
+  }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+
+  .footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 28px;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 11px;
+    color: #999;
+    border-top: 1px solid #e0e0e0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Outer Join · SQL</h1>
+
+<div class="btns">
+  <button class="op-btn active" onclick="setJoin('inner',this)">INNER JOIN</button>
+  <button class="op-btn" onclick="setJoin('left',this)">LEFT JOIN</button>
+  <button class="op-btn" onclick="setJoin('right',this)">RIGHT JOIN</button>
+  <button class="op-btn" onclick="setJoin('full',this)">FULL OUTER JOIN</button>
+</div>
+
+<div class="tables-wrap" id="wrap">
+  <svg id="connectors"></svg>
+
+  <!-- Customer -->
+  <div class="tbl-block">
+    <div class="tbl-title" style="background:#534AB7;">Customer</div>
+    <table>
+      <thead><tr><th>CustomerID</th><th>CompanyName</th></tr></thead>
+      <tbody>
+        <tr id="c1" class="row-c"><td>101</td><td>Acme Corp</td></tr>
+        <tr id="c2" class="row-c"><td>102</td><td>Globex</td></tr>
+        <tr id="c3" class="row-c"><td>103</td><td>Initech</td></tr>
+        <tr id="c4" class="row-c"><td>104</td><td>Hooli</td></tr>
+        <tr id="c5" class="row-c"><td>105</td><td>Umbrella</td></tr>
+        <tr id="cn1" class="row-null" style="display:none"><td>NULL</td><td>NULL</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CustomerAddress -->
+  <div class="tbl-block">
+    <div class="tbl-title" style="background:#0F6E56;">CustomerAddress</div>
+    <table>
+      <thead><tr><th>CustomerID</th><th>AddressType</th></tr></thead>
+      <tbody>
+        <tr id="a1" class="row-a"><td>101</td><td>Main Office</td></tr>
+        <tr id="a2" class="row-a"><td>101</td><td>Shipping</td></tr>
+        <tr id="a3" class="row-a"><td>102</td><td>Main Office</td></tr>
+        <tr id="a4" class="row-a"><td>103</td><td>Main Office</td></tr>
+        <tr id="a5" class="row-a"><td>999</td><td>Shipping</td></tr>
+        <tr id="an1" class="row-null" style="display:none"><td>NULL</td><td>NULL</td></tr>
+        <tr id="an2" class="row-null" style="display:none"><td>NULL</td><td>NULL</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="legend">
+  <span>
+    <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#888" stroke-width="1" stroke-dasharray="4 2"/></svg>
+    par encontrado
+  </span>
+  <span>
+    <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#C04828" stroke-width="1" stroke-dasharray="3 2"/></svg>
+    sem par → NULL
+  </span>
+</div>
+
+<div class="rule" id="jrule"></div>
+<div class="sql-wrap"><div class="sql-box" id="jsql"></div></div>
+
+<div class="footer">
+  <span>Data Science &amp; Business Analytics · ISEG · 6.ª Edição · Tutoria · Sessão 3</span>
+  <span>DDM</span>
+</div>
+
+<script>
+const jcfg = {
+  inner: {
+    dimC: ['c4','c5'], dimA: ['a5'],
+    nullR: [], nullL: [],
+    pairs: [['c1','a1'],['c1','a2'],['c2','a3'],['c3','a4']],
+    orphanC: [], orphanA: [],
+    rule: 'Só saem as linhas com par nas duas tabelas: clientes sem endereço (104, 105) e endereços sem cliente (999) não aparecem',
+    sql: 'SELECT c.CustomerID, c.CompanyName, ca.AddressType\nFROM Customer c\n<b>INNER JOIN</b> CustomerAddress ca ON c.CustomerID = ca.CustomerID'
+  },
+  left: {
+    dimC: [], dimA: ['a5'],
+    nullR: ['an1','an2'], nullL: [],
+    pairs: [['c1','a1'],['c1','a2'],['c2','a3'],['c3','a4']],
+    orphanC: ['c4','c5'], orphanA: [],
+    rule: 'Todos os clientes aparecem: 104 (Hooli) e 105 (Umbrella) surgem com NULL em AddressType — não têm endereço associado',
+    sql: 'SELECT c.CustomerID, c.CompanyName, ca.AddressType\nFROM Customer c\n<b>LEFT JOIN</b> CustomerAddress ca ON c.CustomerID = ca.CustomerID'
+  },
+  right: {
+    dimC: ['c4','c5'], dimA: [],
+    nullR: [], nullL: ['cn1'],
+    pairs: [['c1','a1'],['c1','a2'],['c2','a3'],['c3','a4']],
+    orphanC: [], orphanA: ['a5'],
+    rule: 'Todos os endereços aparecem: CustomerID 999 não existe em Customer — surge com NULL em CustomerID e CompanyName',
+    sql: 'SELECT c.CustomerID, c.CompanyName, ca.AddressType\nFROM Customer c\n<b>RIGHT JOIN</b> CustomerAddress ca ON c.CustomerID = ca.CustomerID'
+  },
+  full: {
+    dimC: [], dimA: [],
+    nullR: ['an1','an2'], nullL: ['cn1'],
+    pairs: [['c1','a1'],['c1','a2'],['c2','a3'],['c3','a4']],
+    orphanC: ['c4','c5'], orphanA: ['a5'],
+    rule: 'Todas as linhas de ambas as tabelas: sem par preenche com NULL em qualquer dos lados',
+    sql: 'SELECT c.CustomerID, c.CompanyName, ca.AddressType\nFROM Customer c\n<b>FULL OUTER JOIN</b> CustomerAddress ca ON c.CustomerID = ca.CustomerID'
+  }
+};
+
+function midY(el) {
+  const wr = document.getElementById('wrap').getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return r.top + r.height / 2 - wr.top;
+}
+function edgeX(el, side) {
+  const wr = document.getElementById('wrap').getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return side === 'right' ? r.right - wr.left : r.left - wr.left;
+}
+
+function drawLines(cfg) {
+  const svg = document.getElementById('connectors');
+  const wrap = document.getElementById('wrap');
+  svg.innerHTML = '';
+  svg.setAttribute('width', wrap.offsetWidth);
+  svg.setAttribute('height', wrap.offsetHeight);
+
+  function line(x1,y1,x2,y2,color,dash) {
+    const l = document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+    l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+    l.setAttribute('stroke',color); l.setAttribute('stroke-width','1');
+    l.setAttribute('stroke-dasharray',dash); l.setAttribute('opacity','0.6');
+    svg.appendChild(l);
+  }
+
+  cfg.pairs.forEach(([cid,aid]) => {
+    const cr = document.getElementById(cid);
+    const ar = document.getElementById(aid);
+    if (!cr || !ar || cr.style.display==='none' || ar.style.display==='none') return;
+    line(edgeX(cr,'right'), midY(cr), edgeX(ar,'left'), midY(ar), '#888780', '4 2');
+  });
+  cfg.orphanC.forEach((cid,i) => {
+    const cr = document.getElementById(cid);
+    const ar = document.getElementById(cfg.nullR[i]);
+    if (!cr || !ar || cr.style.display==='none' || ar.style.display==='none') return;
+    line(edgeX(cr,'right'), midY(cr), edgeX(ar,'left'), midY(ar), '#C04828', '3 2');
+  });
+  cfg.orphanA.forEach((aid,i) => {
+    const ar = document.getElementById(aid);
+    const cr = document.getElementById(cfg.nullL[i]);
+    if (!ar || !cr || ar.style.display==='none' || cr.style.display==='none') return;
+    line(edgeX(cr,'right'), midY(cr), edgeX(ar,'left'), midY(ar), '#C04828', '3 2');
+  });
+}
+
+function setJoin(type, btn) {
+  document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cfg = jcfg[type];
+
+  // Reset all
+  ['c1','c2','c3','c4','c5','cn1'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display=''; el.classList.remove('dim'); }
+  });
+  ['a1','a2','a3','a4','a5','an1','an2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display=''; el.classList.remove('dim'); }
+  });
+  // Hide null rows
+  ['cn1','an1','an2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display='none';
+  });
+
+  cfg.dimC.forEach(id => { const el=document.getElementById(id); if(el) el.classList.add('dim'); });
+  cfg.dimA.forEach(id => { const el=document.getElementById(id); if(el) el.classList.add('dim'); });
+  cfg.nullR.forEach(id => { const el=document.getElementById(id); if(el) el.style.display=''; });
+  cfg.nullL.forEach(id => { const el=document.getElementById(id); if(el) el.style.display=''; });
+
+  document.getElementById('jrule').textContent = cfg.rule;
+  document.getElementById('jsql').innerHTML = cfg.sql.replace(/\n/g,'<br>');
+
+  setTimeout(() => drawLines(cfg), 30);
+}
+
+setJoin('inner', document.querySelector('.op-btn'));
+window.addEventListener('resize', () => {
+  const active = document.querySelector('.op-btn.active');
+  if (active) {
+    const type = active.getAttribute('onclick').match(/'(\w+)'/)[1];
+    setTimeout(() => drawLines(jcfg[type]), 30);
+  }
+});
+</script>
+</body>
+</html>
